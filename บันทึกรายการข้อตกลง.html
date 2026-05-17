@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบรายงานการปฏิบัติงาน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { 'sans': ['Sarabun','sans-serif'], 'display': ['Prompt','sans-serif'] },
+        colors: {
+          'gov-blue': {
+            50:'#faf5ff', 100:'#f3e8ff', 200:'#e9d5ff', 300:'#d8b4fe',
+            400:'#c084fc', 500:'#a855f7', 600:'#9333ea',
+            700:'#7e22ce', 800:'#6b21a8', 900:'#581c87',
+          }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  * { font-family: 'Sarabun', sans-serif; }
+  .font-display { font-family: 'Prompt', sans-serif; }
+  
+  body { background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #faf5ff 100%); min-height: 100vh; }
+  .card-shadow { box-shadow: 0 4px 6px -1px rgba(107,33,168,0.08), 0 2px 4px -1px rgba(107,33,168,0.04); }
+  .card-shadow-lg { box-shadow: 0 10px 25px -5px rgba(107,33,168,0.1), 0 4px 6px -2px rgba(107,33,168,0.05); }
+  .gradient-blue { background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%); }
+  .gradient-card-1 { background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%); }
+  .gradient-card-2 { background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%); }
+  .gradient-card-3 { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); }
+  .gradient-card-4 { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+  .gradient-card-5 { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); }
+  .gradient-card-6 { background: linear-gradient(135deg, #dc2626 0%, #f87171 100%); }
+  
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  
+  .nav-link { transition: all 0.2s ease; }
+  .nav-link.active { background: rgba(255,255,255,0.2); color: white; }
+  .nav-link:hover { background: rgba(255,255,255,0.15); }
+  
+  .loading-spinner { border: 3px solid #f3e8ff; border-top: 3px solid #6b21a8; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+  @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+  
+  .notification { animation: slideIn 0.3s ease-out; }
+  @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+  
+  .table-hover tbody tr:hover { background-color: #faf5ff; }
+  
+  input, select, textarea { transition: all 0.2s ease; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #6b21a8; box-shadow: 0 0 0 3px rgba(107,33,168,0.1); }
+  
+  .btn-primary { background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%); transition: all 0.2s ease; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -5px rgba(107,33,168,0.3); }
+  
+  .image-preview { position: relative; display: inline-block; margin: 4px; }
+  .image-preview img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #e9d5ff; }
+  .image-preview .remove-btn {
+    position: absolute; top: -8px; right: -8px; width: 24px; height: 24px;
+    background: #ef4444; color: white; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; font-weight: bold;
+  }
+  
+  .mobile-menu { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+  .mobile-menu.open { transform: translateX(0); }
+  
+  .tab-btn { padding: 8px 16px; border-radius: 8px; font-weight: 500; transition: all 0.2s ease; cursor: pointer; background: #f1f5f9; color: #64748b; }
+  .tab-btn.active { background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%); color: white; box-shadow: 0 4px 6px -1px rgba(107,33,168,0.2); }
+  
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #d8b4fe; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #a855f7; }
+  
+  .empty-state { text-align: center; padding: 60px 20px; }
+  .empty-state-icon { font-size: 64px; color: #cbd5e1; margin-bottom: 16px; }
+  
+  /* =============== Report PDF Styles =============== */
+  /* คอนเทนเนอร์รายงาน — padding น้อยลง เพราะ exportPDF จะจัด margin เอง
+     ส่วนการพิมพ์ผ่าน browser ใช้ @media print กำหนดอีกที */
+  .report-doc {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 12mm 14mm 12mm 14mm;
+    margin: 20px auto;
+    background: white;
+    box-sizing: border-box;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+  .report-doc * { font-family: 'Sarabun', sans-serif !important; }
+  
+  /* ใช้ระบุ block สำหรับ PDF export */
+  .pdf-block { /* marker class — ไม่ใส่ style */ }
+  
+  /* ตัวอักษรในรายงาน */
+  .rpt-title    { font-size: 24px; font-weight: 700; color: #581c87; font-family: 'Prompt' !important; }
+  .rpt-subtitle { font-size: 18px; color: #475569; }
+  .rpt-name     { font-size: 18px; font-weight: 700; color: #581c87; }
+  .rpt-pos      { font-size: 16px; color: #475569; }
+  .rpt-h2       { font-size: 18px; font-weight: 700; color: #581c87; font-family: 'Prompt' !important; }
+  .rpt-h3       { font-size: 17px; font-weight: 600; color: #6b21a8; }
+  .rpt-body     { font-size: 16px; color: #1e293b; line-height: 1.6; }
+  .rpt-small    { font-size: 14px; color: #64748b; }
+  
+  /* ตารางรายงาน */
+  .rpt-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .rpt-table th { background: #6b21a8; color: white; padding: 10px; font-weight: 600; font-size: 16px; border: 1px solid #7e22ce; text-align: left; }
+  .rpt-table td { padding: 8px 10px; border: 1px solid #cbd5e1; vertical-align: top; font-size: 16px; color: #1e293b; }
+  
+  /* การ์ดสรุปแต่ละด้าน */
+  .rpt-card { padding: 12px; border-radius: 10px; text-align: center; border: 1px solid; }
+  .rpt-card-num   { font-size: 28px; font-weight: 800; line-height: 1; }
+  .rpt-card-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  
+  /* ============================================
+     Print CSS — ใช้ Browser's native print engine
+     แนวทาง: เมื่อ user สั่งพิมพ์/Save as PDF จาก browser
+     CSS @media print จะถูกใช้แทน CSS ปกติ
+     Browser จะจัดการ page break ให้เอง (ไม่ฉีกแถว/หัวข้อ)
+     ============================================ */
+  @media print {
+    /* ตั้งขนาดและขอบกระดาษ A4 */
+    @page {
+      size: A4 portrait;
+      margin: 15mm 15mm 15mm 15mm;
+    }
+    
+    /* ซ่อนทุกอย่างที่ไม่ใช่รายงาน */
+    body * { visibility: hidden; }
+    #reportContent, #reportContent * { visibility: visible; }
+    #reportContent {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100% !important;
+      min-height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+    
+    body {
+      background: white !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    /* ทุกอย่างที่ไม่ควรอยู่ในรายงาน */
+    .no-print { display: none !important; }
+    
+    /* ============================================
+       กฎสำคัญ: ไม่ฉีกบล็อก
+       ============================================ */
+    
+    /* ไม่ฉีกใน element เหล่านี้ */
+    .rpt-section,
+    .group-wrap,
+    .rpt-signature,
+    .rpt-card,
+    table,
+    tr,
+    .avoid-break {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    
+    /* ตาราง: หัวตารางซ้ำทุกหน้า (เหมือน Excel freeze pane) */
+    thead { display: table-header-group !important; }
+    tfoot { display: table-footer-group !important; }
+    
+    /* หัวข้อด้าน (.group-header) ต้องอยู่กับตารางด้านล่างเสมอ */
+    .group-header {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+    
+    /* หัวข้อใหญ่ห้ามอยู่ท้ายหน้าเดี่ยว ๆ */
+    h1, h2, h3 {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+    
+    /* ลายเซ็นต้องอยู่ครบในหน้าเดียว */
+    .rpt-signature {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      page-break-before: auto !important;
+    }
+    
+    /* ============================================
+       ปรับขนาดให้พอดี A4 (เผื่อ flex/grid)
+       ============================================ */
+    .report-doc { 
+      width: 100% !important; 
+      max-width: 100% !important;
+    }
+    
+    /* บังคับ canvas ของ chart ไม่ขยายเกินกรอบ */
+    canvas { max-width: 100% !important; height: auto !important; }
+    
+    /* ลบ shadow ให้พิมพ์ออกชัด */
+    * { 
+      box-shadow: none !important; 
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+  }
+  
+  /* ระยะห่างระหว่างบล็อกในรายงาน */
+  .rpt-section { margin-bottom: 18px; }
+  .rpt-section:last-child { margin-bottom: 0; }
+  
+  .page-break-pdf { page-break-before: always; }
+  .avoid-break { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] hidden items-center justify-center">
+  <div class="text-center">
+    <div class="loading-spinner mx-auto"></div>
+    <p class="mt-4 text-gov-blue-800 font-medium">กำลังโหลดข้อมูล...</p>
+  </div>
+</div>
+
+<!-- Notification -->
+<div id="notification" class="fixed top-4 right-4 z-[90] hidden">
+  <div class="notification bg-white rounded-xl card-shadow-lg p-4 flex items-center gap-3 min-w-[300px]">
+    <div id="notifIcon" class="w-10 h-10 rounded-full flex items-center justify-center text-white text-xl">✓</div>
+    <div>
+      <p id="notifTitle" class="font-semibold text-slate-800">สำเร็จ</p>
+      <p id="notifMessage" class="text-sm text-slate-600"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Header ===== -->
+<header class="gradient-blue text-white sticky top-0 z-50 card-shadow-lg no-print">
+  <div class="container mx-auto px-4 py-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="mobileMenuBtn" class="lg:hidden text-white text-2xl">☰</button>
+        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">📊</div>
+        <div>
+          <h1 class="font-display font-bold text-lg md:text-xl leading-tight">ระบบรายงานการปฏิบัติงาน</h1>
+          <p class="text-xs md:text-sm text-blue-100 leading-tight">Performance Report System</p>
+        </div>
+      </div>
+      <nav class="hidden lg:flex items-center gap-1">
+        <button onclick="showPage('dashboard')" class="nav-link active px-4 py-2 rounded-lg font-medium text-sm">📈 Dashboard</button>
+        <button onclick="showPage('form')" class="nav-link px-4 py-2 rounded-lg font-medium text-sm">📝 บันทึกข้อมูล</button>
+        <button onclick="showPage('list')" class="nav-link px-4 py-2 rounded-lg font-medium text-sm">📋 รายการทั้งหมด</button>
+        <button onclick="showPage('report')" class="nav-link px-4 py-2 rounded-lg font-medium text-sm">📄 รายงานรายเดือน</button>
+      </nav>
+    </div>
+    
+    <!-- User Info -->
+    <div class="mt-4 bg-white/10 backdrop-blur-sm rounded-xl p-3 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+      <div class="flex items-center gap-3">
+        <div class="relative group cursor-pointer" onclick="document.getElementById('profileImageInput').click()" title="คลิกเพื่อเปลี่ยนรูปโปรไฟล์">
+          <div id="profileAvatarWrap" class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-gov-blue-800 font-bold text-lg overflow-hidden border-2 border-white/50 shadow">
+            <span id="profileInitial">พ</span>
+            <img id="profileAvatarImg" src="" alt="profile" class="hidden w-full h-full object-cover">
+          </div>
+          <div class="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-medium">เปลี่ยน</div>
+        </div>
+        <input type="file" id="profileImageInput" accept="image/*" class="hidden" onchange="changeProfileImage(event)">
+        <div>
+          <p class="font-semibold text-sm">นางสาวพิราวรรณ บุญชู</p>
+          <p class="text-xs text-blue-100">นักวิชาการศึกษาปฏิบัติการ</p>
+        </div>
+      </div>
+      <div class="md:ml-auto text-xs text-blue-100">ฝ่ายบริหารการศึกษา กองการศึกษา เทศบาลเมืองกำแพงเพชร</div>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Menu -->
+<div id="mobileMenu" class="mobile-menu fixed top-0 left-0 h-full w-64 bg-white z-[80] shadow-2xl lg:hidden">
+  <div class="gradient-blue text-white p-4 flex items-center justify-between">
+    <span class="font-display font-bold">เมนู</span>
+    <button id="closeMobileMenu" class="text-2xl">✕</button>
+  </div>
+  <nav class="p-4 space-y-2">
+    <button onclick="showPage('dashboard'); closeMobile();" class="w-full text-left px-4 py-3 rounded-lg hover:bg-gov-blue-50 font-medium">📈 Dashboard</button>
+    <button onclick="showPage('form'); closeMobile();" class="w-full text-left px-4 py-3 rounded-lg hover:bg-gov-blue-50 font-medium">📝 บันทึกข้อมูล</button>
+    <button onclick="showPage('list'); closeMobile();" class="w-full text-left px-4 py-3 rounded-lg hover:bg-gov-blue-50 font-medium">📋 รายการทั้งหมด</button>
+    <button onclick="showPage('report'); closeMobile();" class="w-full text-left px-4 py-3 rounded-lg hover:bg-gov-blue-50 font-medium">📄 รายงานรายเดือน</button>
+  </nav>
+</div>
+<div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-[70] hidden lg:hidden"></div>
+
+<!-- ===== Main Content ===== -->
+<main class="container mx-auto px-4 py-6">
+
+<!-- ====================== DASHBOARD ====================== -->
+<section id="page-dashboard" class="page active">
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+    <div class="gradient-card-1 text-white rounded-2xl p-4 card-shadow-lg">
+      <div class="text-3xl mb-2">📊</div>
+      <p class="text-xs opacity-90 mb-1">งานทั้งหมด</p>
+      <p class="text-2xl md:text-3xl font-display font-bold" id="stat-total">0</p>
+      <p class="text-xs opacity-75 mt-1">รายการ</p>
+    </div>
+    <div class="gradient-card-2 text-white rounded-2xl p-4 card-shadow-lg">
+      <div class="text-3xl mb-2">📅</div>
+      <p class="text-xs opacity-90 mb-1">เดือนนี้</p>
+      <p class="text-2xl md:text-3xl font-display font-bold" id="stat-month">0</p>
+      <p class="text-xs opacity-75 mt-1">รายการ</p>
+    </div>
+    <div class="gradient-card-3 text-white rounded-2xl p-4 card-shadow-lg">
+      <div class="text-2xl mb-1">1️⃣</div>
+      <p class="text-xs opacity-90 font-semibold leading-tight mb-1">การพัฒนาและ<br>ส่งเสริมการศึกษา</p>
+      <p class="text-2xl md:text-3xl font-display font-bold" id="stat-cat1">0</p>
+    </div>
+    <div class="gradient-card-4 text-white rounded-2xl p-4 card-shadow-lg">
+      <div class="text-2xl mb-1">2️⃣</div>
+      <p class="text-xs opacity-90 font-semibold leading-tight mb-1">การบริหารจัดการ<br>และประสานงาน</p>
+      <p class="text-2xl md:text-3xl font-display font-bold" id="stat-cat2">0</p>
+    </div>
+    <div class="gradient-card-5 text-white rounded-2xl p-4 card-shadow-lg">
+      <div class="text-2xl mb-1">3️⃣</div>
+      <p class="text-xs opacity-90 font-semibold leading-tight mb-1">การบริการวิชาการ<br>และพัฒนาชุมชน</p>
+      <p class="text-2xl md:text-3xl font-display font-bold" id="stat-cat3">0</p>
+    </div>
+    <div class="gradient-card-6 text-white rounded-2xl p-4 card-shadow-lg">
+      <div class="text-2xl mb-1">4️⃣</div>
+      <p class="text-xs opacity-90 font-semibold leading-tight mb-1">งานอื่น ๆ</p>
+      <p class="text-2xl md:text-3xl font-display font-bold" id="stat-cat4">0</p>
+    </div>
+  </div>
+  
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-2xl p-4 md:p-6 card-shadow">
+      <h3 class="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-gov-blue-600 rounded"></span>แยกประเภทงาน
+      </h3>
+      <div class="relative h-64"><canvas id="pieChart"></canvas></div>
+    </div>
+    <div class="bg-white rounded-2xl p-4 md:p-6 card-shadow lg:col-span-2">
+      <h3 class="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <span class="w-1 h-5 bg-gov-blue-600 rounded"></span>สรุปรายเดือน
+      </h3>
+      <div class="relative h-64"><canvas id="barChart"></canvas></div>
+    </div>
+  </div>
+  
+  <div class="bg-white rounded-2xl p-4 md:p-6 card-shadow mb-6">
+    <h3 class="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
+      <span class="w-1 h-5 bg-gov-blue-600 rounded"></span>แนวโน้มการทำงาน
+    </h3>
+    <div class="relative h-64"><canvas id="lineChart"></canvas></div>
+  </div>
+  
+  <div class="bg-white rounded-2xl p-4 md:p-6 card-shadow">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+      <h3 class="font-display font-semibold text-slate-800 flex items-center gap-2">
+        <span class="w-1 h-5 bg-gov-blue-600 rounded"></span>รายการงานล่าสุด
+      </h3>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="filterDashboard('all')" class="tab-btn active" data-tab="all">ทั้งหมด</button>
+        <button onclick="filterDashboard('1')" class="tab-btn" data-tab="1">ด้านที่ 1</button>
+        <button onclick="filterDashboard('2')" class="tab-btn" data-tab="2">ด้านที่ 2</button>
+        <button onclick="filterDashboard('3')" class="tab-btn" data-tab="3">ด้านที่ 3</button>
+        <button onclick="filterDashboard('4')" class="tab-btn" data-tab="4">อื่นๆ</button>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full table-hover">
+        <thead>
+          <tr class="border-b-2 border-gov-blue-100 text-left text-sm text-slate-600">
+            <th class="py-3 px-2">วันที่</th>
+            <th class="py-3 px-2">ประเภท</th>
+            <th class="py-3 px-2">หัวข้อย่อย</th>
+            <th class="py-3 px-2">เรื่อง</th>
+            <th class="py-3 px-2 text-center">URL</th>
+            <th class="py-3 px-2 text-center">รูปภาพ</th>
+          </tr>
+        </thead>
+        <tbody id="dashboardTable" class="text-sm"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== FORM ====================== -->
+<section id="page-form" class="page">
+  <div class="bg-white rounded-2xl card-shadow-lg overflow-hidden">
+    <div class="gradient-blue text-white p-6">
+      <h2 class="font-display font-bold text-2xl flex items-center gap-2"><span>📝</span> บันทึกข้อมูลการปฏิบัติงาน</h2>
+      <p class="text-sm text-blue-100 mt-1">กรอกข้อมูลให้ครบถ้วน แล้วกดบันทึก</p>
+    </div>
+    
+    <form id="recordForm" class="p-6 space-y-5">
+      <input type="hidden" id="recordId">
+      
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">📅 วันที่ <span class="text-red-500">*</span></label>
+        <input type="date" id="recordDate" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl">
+        <p id="thaiDateDisplay" class="text-xs text-gov-blue-600 mt-1 font-medium"></p>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">🏷️ ประเภทงานหลัก <span class="text-red-500">*</span></label>
+        <select id="mainCategory" required onchange="updateSubCategory()" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl">
+          <option value="">-- เลือกประเภทงาน --</option>
+          <option value="1">ด้านที่ 1: ด้านการพัฒนาและส่งเสริมการศึกษา</option>
+          <option value="2">ด้านที่ 2: ด้านการบริหารจัดการและประสานงาน</option>
+          <option value="3">ด้านที่ 3: ด้านการบริการวิชาการและพัฒนาชุมชน</option>
+          <option value="4">ด้านที่ 4: งานอื่นๆ</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">📌 หัวข้อย่อย <span class="text-red-500">*</span></label>
+        <select id="subCategory" required disabled class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl bg-slate-50">
+          <option value="">-- กรุณาเลือกประเภทงานก่อน --</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">✏️ เรื่อง / หัวข้องาน <span class="text-red-500">*</span></label>
+        <input type="text" id="recordTopic" required placeholder="ระบุชื่อเรื่องหรือหัวข้องาน" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl">
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">📄 รายละเอียดงาน</label>
+        <textarea id="recordDetail" rows="4" placeholder="อธิบายรายละเอียดของงานที่ทำ..." class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl resize-none"></textarea>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">🔗 URL เอกสารหรือไฟล์</label>
+        <input type="url" id="recordUrl" placeholder="https://..." class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl">
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">🖼️ อัปโหลดรูปภาพ (รองรับหลายไฟล์)</label>
+        <div class="border-2 border-dashed border-gov-blue-300 rounded-xl bg-gov-blue-50/50 p-4 text-center hover:border-gov-blue-500 hover:bg-gov-blue-50 transition cursor-pointer"
+             onclick="document.getElementById('recordImages').click()">
+          <div class="text-3xl mb-1">📁</div>
+          <p class="text-sm text-gov-blue-700 font-medium">คลิกเพื่อเลือกรูปภาพ</p>
+          <p class="text-xs text-slate-400 mt-0.5">รองรับ JPG, PNG, WEBP — หลายไฟล์พร้อมกัน</p>
+        </div>
+        <input type="file" id="recordImages" accept="image/*" multiple onchange="previewImages(event)" class="hidden">
+
+        <div id="uploadProgress" class="hidden mt-3">
+          <div class="flex items-center gap-2 text-sm text-gov-blue-700 font-medium mb-1">
+            <div class="w-4 h-4 border-2 border-gov-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span id="uploadProgressText">กำลังอัปโหลดรูปภาพ...</span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-2">
+            <div id="uploadProgressBar" class="bg-gov-blue-500 h-2 rounded-full transition-all" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div id="imagePreview" class="mt-3 flex flex-wrap gap-2"></div>
+
+        <details class="mt-3">
+          <summary class="text-xs text-slate-500 cursor-pointer hover:text-gov-blue-600">หรือใส่ URL รูปภาพโดยตรง</summary>
+          <input type="text" id="recordImageUrl" placeholder="https://drive.google.com/uc?export=view&id=..." class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl mt-2 text-sm">
+        </details>
+      </div>
+      
+      <div class="flex flex-col md:flex-row gap-3 pt-4 border-t border-slate-200">
+        <button type="submit" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 flex-1">💾 บันทึกข้อมูล</button>
+        <button type="button" onclick="resetForm()" class="px-6 py-3 rounded-xl font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">🔄 ล้างข้อมูล</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- ====================== LIST ====================== -->
+<section id="page-list" class="page">
+  <div class="bg-white rounded-2xl card-shadow-lg overflow-hidden">
+    <div class="gradient-blue text-white p-6">
+      <h2 class="font-display font-bold text-2xl flex items-center gap-2"><span>📋</span> รายการข้อมูลทั้งหมด</h2>
+    </div>
+    
+    <div class="p-6 bg-gov-blue-50/50 border-b border-gov-blue-100">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <input type="text" id="searchInput" placeholder="🔍 ค้นหา..." class="px-4 py-2.5 border-2 border-slate-200 rounded-xl bg-white">
+        <select id="filterMonth" class="px-4 py-2.5 border-2 border-slate-200 rounded-xl bg-white">
+          <option value="">📅 ทุกเดือน</option>
+          <option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option>
+          <option value="3">มีนาคม</option><option value="4">เมษายน</option>
+          <option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option>
+          <option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option>
+          <option value="9">กันยายน</option><option value="10">ตุลาคม</option>
+          <option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
+        </select>
+        <select id="filterYear" class="px-4 py-2.5 border-2 border-slate-200 rounded-xl bg-white">
+          <option value="">📆 ทุกปี</option>
+        </select>
+        <select id="filterCategory" class="px-4 py-2.5 border-2 border-slate-200 rounded-xl bg-white">
+          <option value="">🏷️ ทุกประเภท</option>
+          <option value="1">ด้านที่ 1</option><option value="2">ด้านที่ 2</option>
+          <option value="3">ด้านที่ 3</option><option value="4">งานอื่นๆ</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="w-full table-hover">
+        <thead class="bg-gov-blue-50">
+          <tr class="text-left text-sm text-slate-700 border-b-2 border-gov-blue-100">
+            <th class="py-3 px-4 font-semibold">วันที่</th>
+            <th class="py-3 px-4 font-semibold">ประเภท</th>
+            <th class="py-3 px-4 font-semibold">หัวข้อย่อย</th>
+            <th class="py-3 px-4 font-semibold">เรื่อง</th>
+            <th class="py-3 px-4 font-semibold text-center">URL</th>
+            <th class="py-3 px-4 font-semibold text-center">รูป</th>
+            <th class="py-3 px-4 font-semibold text-center">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="listTable" class="text-sm"></tbody>
+      </table>
+    </div>
+    
+    <div id="listEmpty" class="empty-state hidden">
+      <div class="empty-state-icon">📭</div>
+      <p class="text-slate-500 font-medium">ยังไม่มีข้อมูลในระบบ</p>
+      <button onclick="showPage('form')" class="mt-4 btn-primary text-white px-6 py-2 rounded-xl text-sm">+ เพิ่มข้อมูลใหม่</button>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== REPORT ====================== -->
+<section id="page-report" class="page">
+  <div class="bg-white rounded-2xl card-shadow-lg overflow-hidden mb-6 no-print">
+    <div class="gradient-blue text-white p-6">
+      <h2 class="font-display font-bold text-2xl flex items-center gap-2"><span>📄</span> รายงานรายเดือน</h2>
+      <p class="text-sm text-blue-100 mt-1">เลือกเดือนและปีเพื่อสร้างรายงาน A4</p>
+    </div>
+    
+    <div class="p-6">
+      <!-- ปี + ปุ่มสร้าง -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">เลือกปี (พ.ศ.)</label>
+          <select id="reportYear" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl"></select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">โหมดรายงาน</label>
+          <div class="flex gap-2 pt-1">
+            <label class="flex-1 cursor-pointer">
+              <input type="radio" name="reportMode" value="combined" checked class="peer hidden">
+              <div class="px-3 py-2 text-center text-sm font-semibold rounded-xl border-2 border-slate-200 peer-checked:border-gov-blue-600 peer-checked:bg-gov-blue-50 peer-checked:text-gov-blue-800 transition">
+                📑 รวมรายงาน
+              </div>
+            </label>
+            <label class="flex-1 cursor-pointer">
+              <input type="radio" name="reportMode" value="separate" class="peer hidden">
+              <div class="px-3 py-2 text-center text-sm font-semibold rounded-xl border-2 border-slate-200 peer-checked:border-gov-blue-600 peer-checked:bg-gov-blue-50 peer-checked:text-gov-blue-800 transition">
+                📄 แยกรายเดือน
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="flex items-end">
+          <button onclick="generateReport()" class="btn-primary text-white px-6 py-2.5 rounded-xl font-semibold w-full">🔄 สร้างรายงาน</button>
+        </div>
+      </div>
+
+      <!-- เลือกเดือน (checkbox หลายเดือน) -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-sm font-semibold text-slate-700">เลือกเดือน (เลือกได้มากกว่า 1)</label>
+          <div class="flex gap-2 text-xs">
+            <button type="button" onclick="selectAllMonths(true)" class="px-3 py-1 rounded-md bg-gov-blue-100 text-gov-blue-700 hover:bg-gov-blue-200 font-semibold">เลือกทั้งหมด</button>
+            <button type="button" onclick="selectAllMonths(false)" class="px-3 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold">ล้าง</button>
+            <button type="button" onclick="selectCurrentMonth()" class="px-3 py-1 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-semibold">เดือนปัจจุบัน</button>
+          </div>
+        </div>
+        <div id="monthCheckboxes" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2"></div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 pt-4 border-t border-slate-200">
+        <button onclick="printReport()" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition">🖨️ พิมพ์ A4</button>
+        <button onclick="exportPDF()" class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition">📥 Export PDF</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ==== Report Document (A4) ==== -->
+  <div id="reportContent" class="report-doc">
+    
+    <!-- หัวกระดาษ -->
+    <div class="avoid-break rpt-section" style="border-bottom: 3px solid #6b21a8; padding-bottom: 12px;">
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h1 class="rpt-title">รายงานการปฏิบัติงาน</h1>
+        <p id="reportPeriod" class="rpt-subtitle" style="margin-top: 4px;">ประจำเดือน...</p>
+      </div>
+      
+      <!-- ข้อมูลผู้รายงาน -->
+      <div style="display: flex; align-items: center; gap: 16px; background: #faf5ff; border-radius: 10px; padding: 12px 16px;">
+        <div id="reportProfileWrap" style="width: 70px; height: 70px; border-radius: 50%; overflow: hidden; border: 3px solid #e9d5ff; background: #f3e8ff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <span id="reportProfileInitial" style="font-size: 30px; font-weight: 800; color: #6b21a8;">พ</span>
+          <img id="reportProfileImg" src="" alt="profile" class="hidden" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+        <div>
+          <p class="rpt-name">นางสาวพิราวรรณ บุญชู</p>
+          <p class="rpt-pos">นักวิชาการศึกษาปฏิบัติการ</p>
+          <p class="rpt-pos">ฝ่ายบริหารการศึกษา กองการศึกษา เทศบาลเมืองกำแพงเพชร</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- สรุปจำนวนงาน -->
+    <div class="avoid-break rpt-section">
+      <h2 class="rpt-h2" style="margin-bottom: 10px;">📊 สรุปจำนวนงานแต่ละด้าน</h2>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+        <div class="rpt-card" style="background: #faf5ff; border-color: #e9d5ff;">
+          <div class="rpt-card-label" style="color: #6b21a8;">ด้านที่ 1</div>
+          <div style="font-size: 11px; color: #475569; line-height: 1.2; margin-bottom: 6px;">การพัฒนาและส่งเสริมการศึกษา</div>
+          <div class="rpt-card-num" style="color: #6b21a8;" id="reportCat1">0</div>
+          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">รายการ</div>
+        </div>
+        <div class="rpt-card" style="background: #ecfeff; border-color: #a5f3fc;">
+          <div class="rpt-card-label" style="color: #0e7490;">ด้านที่ 2</div>
+          <div style="font-size: 11px; color: #475569; line-height: 1.2; margin-bottom: 6px;">การบริหารจัดการและประสานงาน</div>
+          <div class="rpt-card-num" style="color: #0e7490;" id="reportCat2">0</div>
+          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">รายการ</div>
+        </div>
+        <div class="rpt-card" style="background: #fffbeb; border-color: #fde68a;">
+          <div class="rpt-card-label" style="color: #92400e;">ด้านที่ 3</div>
+          <div style="font-size: 11px; color: #475569; line-height: 1.2; margin-bottom: 6px;">การบริการวิชาการและพัฒนาชุมชน</div>
+          <div class="rpt-card-num" style="color: #92400e;" id="reportCat3">0</div>
+          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">รายการ</div>
+        </div>
+        <div class="rpt-card" style="background: #fff1f2; border-color: #fecaca;">
+          <div class="rpt-card-label" style="color: #991b1b;">ด้านที่ 4</div>
+          <div style="font-size: 11px; color: #475569; line-height: 1.2; margin-bottom: 6px;">งานอื่น ๆ</div>
+          <div class="rpt-card-num" style="color: #991b1b;" id="reportCat4">0</div>
+          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">รายการ</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- กราฟ -->
+    <div class="avoid-break rpt-section">
+      <h2 class="rpt-h2" style="margin-bottom: 10px;">📈 กราฟแสดงสัดส่วนงาน</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f8fafc; border-radius: 10px; padding: 12px; border: 1px solid #e2e8f0;">
+        <div>
+          <p style="font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 6px; text-align: center;">แยกตามประเภท</p>
+          <div style="height: 180px;"><canvas id="reportPieChart"></canvas></div>
+        </div>
+        <div>
+          <p style="font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 6px; text-align: center;">เปรียบเทียบจำนวน</p>
+          <div style="height: 180px;"><canvas id="reportBarChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- รายการงานแยกตามด้าน -->
+    <div class="rpt-section">
+      <h2 class="rpt-h2" style="margin-bottom: 10px;">📋 รายการงานแยกตามด้าน</h2>
+      <div id="reportGroups"></div>
+    </div>
+
+    <!-- ลายเซ็น (ป้องกันตกหน้า) -->
+    <div class="avoid-break rpt-section rpt-signature" style="margin-top: 32px; display: flex; justify-content: flex-end; page-break-inside: avoid;">
+      <div style="text-align: center; min-width: 280px;">
+        <p class="rpt-body" style="margin-bottom: 8px;">ลงชื่อ ........................................... ผู้รายงาน</p>
+        <p style="font-size: 17px; font-weight: 700; color: #581c87; margin: 0;">(นางสาวพิราวรรณ บุญชู)</p>
+        <p class="rpt-body" style="margin: 2px 0;">นักวิชาการศึกษาปฏิบัติการ</p>
+        <p class="rpt-small" style="margin: 0;">ฝ่ายบริหารการศึกษา กองการศึกษา</p>
+        <p class="rpt-small" style="margin: 0;">เทศบาลเมืองกำแพงเพชร</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<!-- Modal -->
+<div id="detailModal" class="fixed inset-0 bg-black/50 z-[95] hidden items-center justify-center p-4 no-print">
+  <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="gradient-blue text-white p-4 flex items-center justify-between sticky top-0">
+      <h3 class="font-display font-bold">รายละเอียดข้อมูล</h3>
+      <button onclick="closeModal()" class="text-2xl">✕</button>
+    </div>
+    <div id="modalContent" class="p-6 space-y-4"></div>
+  </div>
+</div>
+
+<script>
+// ========================================
+// CONFIG
+// ========================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbzBzaomY1OA_zyaZtJFRpKj8mNZRksBhxEWSAICdC6rfvqYvAjqO_RswTmdbONPZJrF/exec';
+
+// ========================================
+// หมวดหมู่
+// ========================================
+const CATEGORIES = {
+  '1': {
+    name: 'ด้านที่ 1: ด้านการพัฒนาและส่งเสริมการศึกษา',
+    subs: {
+      '1.1 การวิเคราะห์และพัฒนางานการศึกษา': [
+        'ศึกษา วิเคราะห์ และวิจัยข้อมูลด้านการศึกษา',
+        'พัฒนาหลักสูตร สื่อ นวัตกรรม และเทคโนโลยีทางการศึกษา',
+        'จัดทำฐานข้อมูลและสารสนเทศทางการศึกษา'
+      ],
+      '1.2 การส่งเสริมคุณภาพและมาตรฐานการศึกษา': [
+        'สนับสนุนการจัดการศึกษาทั้งในและนอกระบบ',
+        'ติดตาม ประเมินผล และพัฒนาคุณภาพการศึกษา',
+        'ส่งเสริมกิจกรรมด้านวิชาการ ศาสนา ศิลปะ และวัฒนธรรม'
+      ],
+      '1.3 การสนับสนุนบุคลากรและสถานศึกษา': [
+        'วางแผนอัตรากำลังและพัฒนาบุคลากรทางการศึกษา',
+        'ดำเนินงานทะเบียน เอกสาร และข้อมูลทางการศึกษา',
+        'สนับสนุนวัสดุ อุปกรณ์ และงบประมาณด้านการศึกษา'
+      ]
+    }
+  },
+  '2': {
+    name: 'ด้านที่ 2: ด้านการบริหารจัดการและประสานงาน',
+    subs: {
+      '2.1 การวางแผนและบริหารโครงการ': [
+        'จัดทำแผนงานและโครงการด้านการศึกษา',
+        'กำหนดเป้าหมาย ตัวชี้วัด และแนวทางดำเนินงาน',
+        'ติดตามผลการดำเนินงานให้เป็นไปตามแผน'
+      ],
+      '2.2 การประสานงานภายในและภายนอก': [
+        'ประสานความร่วมมือกับหน่วยงานที่เกี่ยวข้อง',
+        'สนับสนุนการดำเนินงานร่วมกันของเครือข่ายการศึกษา',
+        'ชี้แจงข้อมูลและสร้างความเข้าใจแก่หน่วยงานและประชาชน'
+      ],
+      '2.3 การกำกับ ติดตาม และพัฒนาระบบงาน': [
+        'ตรวจสอบและปรับปรุงกระบวนการทำงาน',
+        'พัฒนาระบบข้อมูลและสารสนเทศเพื่อการบริหาร',
+        'ศึกษากฎหมาย ระเบียบ และเทคโนโลยีที่เกี่ยวข้อง'
+      ]
+    }
+  },
+  '3': {
+    name: 'ด้านที่ 3: ด้านการบริการวิชาการและพัฒนาชุมชน',
+    subs: {
+      '3.1 การจัดบริการและกิจกรรมทางการศึกษา': [
+        'จัดอบรม สัมมนา นิทรรศการ และกิจกรรมการเรียนรู้',
+        'ส่งเสริมแหล่งเรียนรู้และแนะแนวการศึกษาอาชีพ',
+        'สนับสนุนการเรียนรู้ของเด็ก เยาวชน และประชาชน'
+      ],
+      '3.2 การเผยแพร่ความรู้และประชาสัมพันธ์': [
+        'จัดทำเอกสาร คู่มือ และสื่อวิชาการ',
+        'เผยแพร่ข้อมูลข่าวสารผ่านสื่อและเทคโนโลยี',
+        'ส่งเสริมองค์ความรู้ด้านการศึกษาอย่างทั่วถึง'
+      ],
+      '3.3 การพัฒนาชุมชนและเครือข่ายการเรียนรู้': [
+        'ส่งเสริมการมีส่วนร่วมของชุมชนด้านการศึกษา',
+        'สนับสนุนกิจกรรมสร้างอาชีพ กีฬา และวัฒนธรรม',
+        'พัฒนาเครือข่ายความร่วมมือเพื่อยกระดับคุณภาพการศึกษา'
+      ]
+    }
+  },
+  '4': {
+    name: 'ด้านที่ 4: งานอื่นๆ',
+    subs: { 'งานอื่นๆ': ['งานที่ได้รับมอบหมาย'] }
+  }
+};
+
+const THAI_MONTHS = ['', 'มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                     'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+// ========================================
+// State
+// ========================================
+let allData = [];
+let currentDashboardFilter = 'all';
+let pieChartInstance = null, barChartInstance = null, lineChartInstance = null;
+let reportPieChart = null, reportBarChart = null;
+let uploadedImages = [];
+let driveImageUrls = [];
+let profileImageBase64 = null;
+
+// ========================================
+// Profile Image
+// ========================================
+function changeProfileImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    profileImageBase64 = e.target.result;
+    document.getElementById('profileAvatarImg').src = profileImageBase64;
+    document.getElementById('profileAvatarImg').classList.remove('hidden');
+    document.getElementById('profileInitial').classList.add('hidden');
+    syncProfileToReport();
+    try { localStorage.setItem('profileImage', profileImageBase64); } catch(e) {}
+    showNotification('เปลี่ยนรูปโปรไฟล์เรียบร้อยแล้ว');
+  };
+  reader.readAsDataURL(file);
+}
+
+function syncProfileToReport() {
+  const reportImg = document.getElementById('reportProfileImg');
+  const reportInitial = document.getElementById('reportProfileInitial');
+  if (profileImageBase64) {
+    reportImg.src = profileImageBase64;
+    reportImg.classList.remove('hidden');
+    reportInitial.classList.add('hidden');
+  } else {
+    reportImg.classList.add('hidden');
+    reportInitial.classList.remove('hidden');
+  }
+}
+
+function loadSavedProfile() {
+  try {
+    const saved = localStorage.getItem('profileImage');
+    if (saved) {
+      profileImageBase64 = saved;
+      document.getElementById('profileAvatarImg').src = saved;
+      document.getElementById('profileAvatarImg').classList.remove('hidden');
+      document.getElementById('profileInitial').classList.add('hidden');
+    }
+  } catch(e) {}
+}
+
+// ========================================
+// Utility
+// ========================================
+function showLoading(show = true) {
+  const overlay = document.getElementById('loadingOverlay');
+  if (show) { overlay.classList.remove('hidden'); overlay.classList.add('flex'); }
+  else { overlay.classList.add('hidden'); overlay.classList.remove('flex'); }
+}
+
+function showNotification(message, type = 'success', title = 'สำเร็จ') {
+  const notif = document.getElementById('notification');
+  const icon = document.getElementById('notifIcon');
+  const titleEl = document.getElementById('notifTitle');
+  const messageEl = document.getElementById('notifMessage');
+  
+  if (type === 'success') {
+    icon.className = 'w-10 h-10 rounded-full flex items-center justify-center text-white text-xl bg-emerald-500';
+    icon.textContent = '✓';
+  } else if (type === 'error') {
+    icon.className = 'w-10 h-10 rounded-full flex items-center justify-center text-white text-xl bg-red-500';
+    icon.textContent = '✕';
+    title = title || 'เกิดข้อผิดพลาด';
+  }
+  
+  titleEl.textContent = title;
+  messageEl.textContent = message;
+  notif.classList.remove('hidden');
+  setTimeout(() => notif.classList.add('hidden'), 3000);
+}
+
+function formatThaiDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return `${d.getDate()} ${THAI_MONTHS[d.getMonth()+1]} ${d.getFullYear()+543}`;
+}
+
+function getCategoryName(cat) { return CATEGORIES[cat] ? CATEGORIES[cat].name : '-'; }
+function getCategoryShort(cat) {
+  const map = { '1':'ด้านที่ 1', '2':'ด้านที่ 2', '3':'ด้านที่ 3', '4':'งานอื่นๆ' };
+  return map[cat] || '-';
+}
+function getCategoryColor(cat) {
+  const map = { '1':'bg-purple-100 text-purple-800', '2':'bg-emerald-100 text-emerald-800',
+                '3':'bg-amber-100 text-amber-800', '4':'bg-red-100 text-red-800' };
+  return map[cat] || 'bg-slate-100 text-slate-800';
+}
+
+// ========================================
+// Navigation
+// ========================================
+function showPage(pageName) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+pageName).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+  const activeBtn = document.querySelector(`.nav-link[onclick*="${pageName}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+  
+  if (pageName === 'dashboard') updateDashboard();
+  if (pageName === 'list') renderList();
+  if (pageName === 'report') {
+    initReportPage();
+    syncProfileToReport();
+    generateReport();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+  document.getElementById('mobileMenu').classList.add('open');
+  document.getElementById('mobileOverlay').classList.remove('hidden');
+});
+document.getElementById('closeMobileMenu').addEventListener('click', closeMobile);
+document.getElementById('mobileOverlay').addEventListener('click', closeMobile);
+function closeMobile() {
+  document.getElementById('mobileMenu').classList.remove('open');
+  document.getElementById('mobileOverlay').classList.add('hidden');
+}
+
+// ========================================
+// Form
+// ========================================
+function updateSubCategory() {
+  const cat = document.getElementById('mainCategory').value;
+  const subSelect = document.getElementById('subCategory');
+  subSelect.innerHTML = '<option value="">-- เลือกหัวข้อย่อย --</option>';
+  if (!cat || !CATEGORIES[cat]) {
+    subSelect.disabled = true;
+    subSelect.classList.add('bg-slate-50');
+    return;
+  }
+  subSelect.disabled = false;
+  subSelect.classList.remove('bg-slate-50');
+  const subs = CATEGORIES[cat].subs;
+  for (const groupName in subs) {
+    const group = document.createElement('optgroup');
+    group.label = groupName;
+    subs[groupName].forEach(item => {
+      const option = document.createElement('option');
+      option.value = item;
+      option.textContent = item;
+      group.appendChild(option);
+    });
+    subSelect.appendChild(group);
+  }
+}
+
+function previewImages(event) {
+  const files = Array.from(event.target.files);
+  const preview = document.getElementById('imagePreview');
+  preview.innerHTML = '';
+  uploadedImages = [];
+  driveImageUrls = [];
+  files.forEach((file, index) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImages.push({ data: e.target.result, name: file.name });
+      const div = document.createElement('div');
+      div.className = 'image-preview';
+      div.id = 'prev-' + index;
+      div.innerHTML = `
+        <img src="${e.target.result}" alt="preview">
+        <span class="remove-btn" onclick="removeImage(${index})">×</span>
+        <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;text-align:center;padding:2px;border-radius:0 0 8px 8px;">ยังไม่อัปโหลด</div>
+      `;
+      preview.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removeImage(index) {
+  uploadedImages.splice(index, 1);
+  driveImageUrls.splice(index, 1);
+  document.getElementById('recordImages').value = '';
+  const preview = document.getElementById('imagePreview');
+  preview.innerHTML = '';
+  uploadedImages.forEach((img, idx) => {
+    const div = document.createElement('div');
+    div.className = 'image-preview';
+    div.innerHTML = `<img src="${img.data}" alt="preview"><span class="remove-btn" onclick="removeImage(${idx})">×</span>`;
+    preview.appendChild(div);
+  });
+}
+
+function resetForm() {
+  document.getElementById('recordForm').reset();
+  document.getElementById('recordId').value = '';
+  document.getElementById('imagePreview').innerHTML = '';
+  document.getElementById('thaiDateDisplay').textContent = '';
+  document.getElementById('subCategory').innerHTML = '<option value="">-- กรุณาเลือกประเภทงานก่อน --</option>';
+  document.getElementById('subCategory').disabled = true;
+  uploadedImages = [];
+  driveImageUrls = [];
+  document.getElementById('uploadProgress').classList.add('hidden');
+}
+
+async function uploadImagesToDrive(images) {
+  if (images.length === 0) return [];
+  const progressDiv  = document.getElementById('uploadProgress');
+  const progressBar  = document.getElementById('uploadProgressBar');
+  const progressText = document.getElementById('uploadProgressText');
+  progressDiv.classList.remove('hidden');
+  const urls = [];
+  const errors = [];
+
+  for (let i = 0; i < images.length; i++) {
+    progressText.textContent = `กำลังอัปโหลดรูปที่ ${i+1}/${images.length}...`;
+    progressBar.style.width = Math.round((i / images.length) * 100) + '%';
+    try {
+      // ตรวจสอบว่าข้อมูลเป็น data URL จริง
+      if (!images[i].data || !images[i].data.startsWith('data:')) {
+        throw new Error('ข้อมูลรูปไม่ใช่ data URL');
+      }
+      console.log(`📤 Uploading image ${i+1}: ${images[i].name} (${images[i].data.length} chars)`);
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'uploadImage',
+          imageData: images[i].data,
+          fileName: images[i].name
+        })
+      });
+
+      // ถ้าเป็น HTML error page (เช่น redirect ไป login) แปลว่า deploy ไม่ถูก
+      const text = await res.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (parseErr) {
+        console.error('Response ไม่ใช่ JSON:', text.substring(0, 200));
+        throw new Error('Apps Script ตอบกลับไม่ใช่ JSON — ตรวจ Deploy / Access อีกครั้ง');
+      }
+      console.log(`📥 Result ${i+1}:`, result);
+
+      if (result.success && result.url) {
+        urls.push(result.url);
+        const card = document.getElementById('prev-' + i);
+        if (card) {
+          const label = card.querySelector('div');
+          if (label) { label.style.background = 'rgba(5,150,105,0.9)'; label.textContent = '✓ อัปโหลดแล้ว'; }
+        }
+      } else {
+        const errMsg = result.message || 'ไม่ทราบสาเหตุ';
+        errors.push(`รูปที่ ${i+1}: ${errMsg}`);
+        const card = document.getElementById('prev-' + i);
+        if (card) {
+          const label = card.querySelector('div');
+          if (label) { label.style.background = 'rgba(239,68,68,0.9)'; label.textContent = '✗ ล้มเหลว'; }
+        }
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      errors.push(`รูปที่ ${i+1}: ${err.message}`);
+      const card = document.getElementById('prev-' + i);
+      if (card) {
+        const label = card.querySelector('div');
+        if (label) { label.style.background = 'rgba(239,68,68,0.9)'; label.textContent = '✗ ' + err.message.substring(0, 20); }
+      }
+    }
+  }
+
+  progressBar.style.width = '100%';
+  if (errors.length > 0) {
+    progressText.textContent = `⚠️ อัปโหลดสำเร็จ ${urls.length}/${images.length} ไฟล์`;
+    showNotification('อัปโหลดรูปไม่สำเร็จบางไฟล์ — ' + errors[0], 'error');
+    console.error('Upload errors:', errors);
+  } else {
+    progressText.textContent = `✓ อัปโหลดสำเร็จทั้งหมด ${urls.length} ไฟล์`;
+  }
+  setTimeout(() => progressDiv.classList.add('hidden'), 3000);
+  return urls;
+}
+
+document.getElementById('recordDate').addEventListener('change', (e) => {
+  document.getElementById('thaiDateDisplay').textContent = formatThaiDate(e.target.value);
+});
+
+document.getElementById('recordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const date = document.getElementById('recordDate').value;
+  const d    = new Date(date);
+  const record = {
+    id:            document.getElementById('recordId').value || null,
+    date:          date,
+    buddhist_year: d.getFullYear() + 543,
+    month:         d.getMonth() + 1,
+    main_category: document.getElementById('mainCategory').value,
+    sub_category:  document.getElementById('subCategory').value,
+    topic:         document.getElementById('recordTopic').value,
+    detail:        document.getElementById('recordDetail').value,
+    url:           document.getElementById('recordUrl').value,
+    image_url:     document.getElementById('recordImageUrl').value
+  };
+  showLoading(true);
+  try {
+    let driveUrls = [];
+    if (uploadedImages.length > 0) {
+      showLoading(false);
+      driveUrls = await uploadImagesToDrive(uploadedImages);
+      showLoading(true);
+    }
+    const allImageUrls = [...driveUrls];
+    if (record.image_url && record.image_url.trim()) {
+      allImageUrls.push(...record.image_url.split('|').map(u => u.trim()).filter(u => u));
+    }
+    record.image_url = allImageUrls.join('|');
+    const action = record.id ? 'update' : 'add';
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, record: record })
+    });
+    const result = await response.json();
+    if (result.success) {
+      showNotification(action === 'add' ? 'บันทึกข้อมูลเรียบร้อย 🎉' : 'แก้ไขข้อมูลเรียบร้อย');
+      resetForm();
+      await loadData();
+      showPage('dashboard');
+    } else {
+      showNotification(result.message || 'เกิดข้อผิดพลาด', 'error');
+    }
+  } catch (err) {
+    console.error(err);
+    showNotification('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์', 'error');
+  } finally {
+    showLoading(false);
+  }
+});
+
+// ========================================
+// Load Data
+// ========================================
+async function loadData() {
+  showLoading(true);
+  try {
+    const response = await fetch(API_URL + '?action=getAll');
+    const result = await response.json();
+    if (result.success) {
+      allData = result.data || [];
+      allData.sort((a, b) => new Date(b.date) - new Date(a.date));
+      updateDashboard();
+      updateYearFilters();
+    } else {
+      allData = [];
+    }
+  } catch (err) {
+    console.error(err);
+    showNotification('ไม่สามารถโหลดข้อมูลได้', 'error');
+    allData = [];
+  } finally {
+    showLoading(false);
+  }
+}
+
+function updateYearFilters() {
+  const years = [...new Set(allData.map(d => d.buddhist_year).filter(y => y))];
+  const currentYear = new Date().getFullYear() + 543;
+  if (!years.includes(currentYear)) years.push(currentYear);
+  years.sort((a, b) => b - a);
+  const filterYear = document.getElementById('filterYear');
+  const reportYear = document.getElementById('reportYear');
+  filterYear.innerHTML = '<option value="">📆 ทุกปี</option>';
+  reportYear.innerHTML = '';
+  years.forEach(y => {
+    filterYear.innerHTML += `<option value="${y}">${y}</option>`;
+    reportYear.innerHTML += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
+  });
+  // เริ่มต้น checkboxes ในรายงาน (เมื่อข้อมูลโหลดแล้ว)
+  if (typeof renderMonthCheckboxes === 'function') renderMonthCheckboxes();
+}
+
+// ========================================
+// Dashboard
+// ========================================
+function updateDashboard() {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear() + 543;
+  document.getElementById('stat-total').textContent = allData.length;
+  document.getElementById('stat-month').textContent = allData.filter(d => d.month == currentMonth && d.buddhist_year == currentYear).length;
+  document.getElementById('stat-cat1').textContent = allData.filter(d => d.main_category == '1').length;
+  document.getElementById('stat-cat2').textContent = allData.filter(d => d.main_category == '2').length;
+  document.getElementById('stat-cat3').textContent = allData.filter(d => d.main_category == '3').length;
+  document.getElementById('stat-cat4').textContent = allData.filter(d => d.main_category == '4').length;
+  renderCharts();
+  renderDashboardTable();
+}
+
+function renderCharts() {
+  const catCounts = ['1','2','3','4'].map(c => allData.filter(d => d.main_category == c).length);
+  if (pieChartInstance) pieChartInstance.destroy();
+  pieChartInstance = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['ด้านที่ 1','ด้านที่ 2','ด้านที่ 3','งานอื่นๆ'],
+      datasets: [{ data: catCounts, backgroundColor: ['#7c3aed','#10b981','#f59e0b','#ef4444'], borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { family: 'Sarabun', size: 11 }, padding: 10 } } } }
+  });
+  
+  const monthCounts = Array.from({length: 12}, (_, i) => allData.filter(d => d.month == (i + 1)).length);
+  if (barChartInstance) barChartInstance.destroy();
+  barChartInstance = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: { labels: THAI_MONTHS.slice(1).map(m => m.substring(0,3)), datasets: [{ label: 'จำนวนงาน', data: monthCounts, backgroundColor: '#a855f7', borderRadius: 8 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+  
+  if (lineChartInstance) lineChartInstance.destroy();
+  lineChartInstance = new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: { labels: THAI_MONTHS.slice(1), datasets: [{ label: 'แนวโน้ม', data: monthCounts, borderColor: '#6b21a8', backgroundColor: 'rgba(107,33,168,0.1)', fill: true, tension: 0.4, borderWidth: 3, pointBackgroundColor: '#6b21a8', pointRadius: 5 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+}
+
+function filterDashboard(filter) {
+  currentDashboardFilter = filter;
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === filter));
+  renderDashboardTable();
+}
+
+function renderDashboardTable() {
+  const tbody = document.getElementById('dashboardTable');
+  let data = allData;
+  if (currentDashboardFilter !== 'all') data = data.filter(d => d.main_category == currentDashboardFilter);
+  data = data.slice(0, 10);
+  if (data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">ไม่มีข้อมูล</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(d => `
+    <tr class="border-b border-slate-100 cursor-pointer hover:bg-purple-50 transition" onclick="viewDetail('${d.id}')" title="คลิกเพื่อดูรายละเอียด">
+      <td class="py-3 px-2 whitespace-nowrap">${formatThaiDate(d.date)}</td>
+      <td class="py-3 px-2"><span class="${getCategoryColor(d.main_category)} px-2 py-1 rounded-full text-xs font-medium">${getCategoryShort(d.main_category)}</span></td>
+      <td class="py-3 px-2 text-xs max-w-xs truncate" title="${d.sub_category || ''}">${d.sub_category || '-'}</td>
+      <td class="py-3 px-2 max-w-xs truncate" title="${d.topic || ''}">${d.topic || '-'}</td>
+      <td class="py-3 px-2 text-center" onclick="event.stopPropagation()">${d.url ? `<a href="${d.url}" target="_blank" class="text-gov-blue-600 hover:underline">🔗</a>` : '-'}</td>
+      <td class="py-3 px-2 text-center">${d.image_url ? '🖼️' : '-'}</td>
+    </tr>
+  `).join('');
+}
+
+// ========================================
+// List
+// ========================================
+function toThumb(src) {
+  if (!src) return src;
+  // ดึง file id จาก URL รูปแบบต่างๆ ของ Google Drive
+  const m = src.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+        || src.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+        || src.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  // ใช้ lh3.googleusercontent.com เพราะ Google block hotlink ของ drive.google.com แล้ว
+  // (drive.google.com/thumbnail?id=... หรือ uc?export=view มักโดน redirect/403)
+  if (m) return 'https://lh3.googleusercontent.com/d/' + m[1] + '=w400';
+  return src;
+}
+
+// คืน URL สำหรับเปิดดูในแท็บใหม่
+function toViewUrl(src) {
+  if (!src) return src;
+  const m = src.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+        || src.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+        || src.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return 'https://drive.google.com/file/d/' + m[1] + '/view';
+  return src;
+}
+
+function renderImageSection(imageUrl) {
+  if (!imageUrl) return '';
+  const imgs = imageUrl.split('|').map(s => s.trim()).filter(s => s.length > 5);
+  if (imgs.length === 0) return '';
+  return `
+    <div>
+      <p class="text-xs text-slate-500 mb-2">🖼️ รูปภาพ (${imgs.length} รูป)</p>
+      <div class="flex flex-wrap gap-3">
+        ${imgs.map((src, i) => {
+          const thumb = toThumb(src);
+          const view  = toViewUrl(src);
+          // ดึง id ออกมาเพื่อใช้สำรอง ถ้า lh3 พลาดจะลอง endpoint อื่น
+          const idMatch = src.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+                      || src.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+                      || src.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          const fid = idMatch ? idMatch[1] : '';
+          const fallback1 = fid ? `https://drive.google.com/thumbnail?id=${fid}&sz=w400` : '';
+          return `
+            <a href="${view}" target="_blank" rel="noopener" title="คลิกเพื่อดูรูปขนาดเต็ม">
+              <div style="width:120px;height:120px;border-radius:10px;overflow:hidden;border:2px solid #bfdbfe;background:#f1f5f9;display:flex;align-items:center;justify-content:center;position:relative;">
+                <img src="${thumb}"
+                     data-fallback="${fallback1}"
+                     style="width:100%;height:100%;object-fit:cover;"
+                     loading="lazy"
+                     referrerpolicy="no-referrer"
+                     onerror="
+                       if (this.dataset.fallback && this.src !== this.dataset.fallback) {
+                         this.src = this.dataset.fallback;
+                         this.dataset.fallback = '';
+                       } else {
+                         this.onerror=null;
+                         this.style.display='none';
+                         this.parentElement.innerHTML+='<div style=\\'font-size:11px;color:#64748b;text-align:center;padding:8px;line-height:1.4;\\'><div style=\\'font-size:24px;margin-bottom:4px;\\'>🔗</div>คลิกเพื่อดู<br>รูปที่ Drive</div>';
+                       }
+                     ">
+              </div>
+            </a>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderList() {
+  const tbody = document.getElementById('listTable');
+  const empty = document.getElementById('listEmpty');
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const month = document.getElementById('filterMonth').value;
+  const year = document.getElementById('filterYear').value;
+  const cat = document.getElementById('filterCategory').value;
+  
+  let data = allData.filter(d => {
+    if (search && !((d.topic || '').toLowerCase().includes(search) || 
+                    (d.sub_category || '').toLowerCase().includes(search) ||
+                    (d.detail || '').toLowerCase().includes(search))) return false;
+    if (month && d.month != month) return false;
+    if (year && d.buddhist_year != year) return false;
+    if (cat && d.main_category != cat) return false;
+    return true;
+  });
+  
+  if (data.length === 0) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbody.innerHTML = data.map(d => `
+    <tr class="border-b border-slate-100">
+      <td class="py-3 px-4 whitespace-nowrap text-xs">${formatThaiDate(d.date)}</td>
+      <td class="py-3 px-4"><span class="${getCategoryColor(d.main_category)} px-2 py-1 rounded-full text-xs font-medium">${getCategoryShort(d.main_category)}</span></td>
+      <td class="py-3 px-4 text-xs max-w-xs truncate" title="${d.sub_category || ''}">${d.sub_category || '-'}</td>
+      <td class="py-3 px-4 max-w-xs truncate" title="${d.topic || ''}">${d.topic || '-'}</td>
+      <td class="py-3 px-4 text-center">${d.url ? `<a href="${d.url}" target="_blank" class="text-gov-blue-600 hover:underline">🔗</a>` : '-'}</td>
+      <td class="py-3 px-4 text-center">${d.image_url ? '🖼️' : '-'}</td>
+      <td class="py-3 px-4">
+        <div class="flex items-center justify-center gap-2">
+          <button onclick="viewDetail('${d.id}')" class="text-blue-600 hover:text-blue-800" title="ดู">👁️</button>
+          <button onclick="editRecord('${d.id}')" class="text-amber-600 hover:text-amber-800" title="แก้ไข">✏️</button>
+          <button onclick="deleteRecord('${d.id}')" class="text-red-600 hover:text-red-800" title="ลบ">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+['searchInput','filterMonth','filterYear','filterCategory'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderList);
+  document.getElementById(id).addEventListener('change', renderList);
+});
+
+function viewDetail(id) {
+  const record = allData.find(d => d.id === id);
+  if (!record) return;
+  const content = document.getElementById('modalContent');
+  content.innerHTML = `
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-slate-50 rounded-lg p-3">
+          <p class="text-xs text-slate-500 mb-1">วันที่</p>
+          <p class="font-medium text-sm">${formatThaiDate(record.date)}</p>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-3">
+          <p class="text-xs text-slate-500 mb-1">ประเภท</p>
+          <span class="${getCategoryColor(record.main_category)} px-2 py-1 rounded-full text-xs font-semibold">${getCategoryShort(record.main_category)}</span>
+        </div>
+      </div>
+      <div><p class="text-xs text-slate-500 mb-1">ประเภทงานหลัก</p><p class="font-medium text-sm text-gov-blue-800">${getCategoryName(record.main_category)}</p></div>
+      <div><p class="text-xs text-slate-500 mb-1">หัวข้อย่อย</p><p class="font-medium text-sm">${record.sub_category || '-'}</p></div>
+      <div><p class="text-xs text-slate-500 mb-1">เรื่อง</p><p class="font-semibold text-slate-800">${record.topic || '-'}</p></div>
+      ${record.detail ? `<div><p class="text-xs text-slate-500 mb-1">รายละเอียด</p><p class="text-sm whitespace-pre-wrap bg-slate-50 rounded-lg p-3">${record.detail}</p></div>` : ''}
+      ${record.url ? `<div><p class="text-xs text-slate-500 mb-1">🔗 URL</p><a href="${record.url}" target="_blank" class="text-gov-blue-600 hover:underline text-sm break-all">${record.url}</a></div>` : ''}
+      ${renderImageSection(record.image_url)}
+    </div>
+  `;
+  const modal = document.getElementById('detailModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeModal() {
+  const modal = document.getElementById('detailModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+function editRecord(id) {
+  const record = allData.find(d => d.id === id);
+  if (!record) return;
+  showPage('form');
+  document.getElementById('recordId').value = record.id;
+  document.getElementById('recordDate').value = record.date;
+  document.getElementById('thaiDateDisplay').textContent = formatThaiDate(record.date);
+  document.getElementById('mainCategory').value = record.main_category;
+  updateSubCategory();
+  setTimeout(() => { document.getElementById('subCategory').value = record.sub_category; }, 100);
+  document.getElementById('recordTopic').value = record.topic || '';
+  document.getElementById('recordDetail').value = record.detail || '';
+  document.getElementById('recordUrl').value = record.url || '';
+  document.getElementById('recordImageUrl').value = record.image_url || '';
+}
+
+async function deleteRecord(id) {
+  if (!confirm('ต้องการลบข้อมูลนี้ใช่หรือไม่?')) return;
+  showLoading(true);
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', id: id })
+    });
+    const result = await response.json();
+    if (result.success) {
+      showNotification('ลบข้อมูลเรียบร้อย');
+      await loadData();
+      renderList();
+    } else {
+      showNotification(result.message || 'เกิดข้อผิดพลาด', 'error');
+    }
+  } catch (err) {
+    showNotification('ไม่สามารถลบข้อมูลได้', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ========================================
+// REPORT — A4 Layout (เลือกหลายเดือน + รวม/แยก)
+// ========================================
+function initReportPage() {
+  renderMonthCheckboxes();
+  selectCurrentMonth();
+}
+
+function renderMonthCheckboxes() {
+  const container = document.getElementById('monthCheckboxes');
+  if (!container || container.children.length > 0) return;  // render ครั้งเดียว
+  let html = '';
+  for (let m = 1; m <= 12; m++) {
+    html += `
+      <label class="cursor-pointer">
+        <input type="checkbox" class="month-cb peer hidden" value="${m}" data-month="${m}">
+        <div class="px-3 py-2 text-center text-sm font-semibold rounded-lg border-2 border-slate-200 bg-white text-slate-600
+                    peer-checked:border-gov-blue-600 peer-checked:bg-gov-blue-50 peer-checked:text-gov-blue-800
+                    hover:border-gov-blue-300 transition">
+          ${THAI_MONTHS[m]}
+        </div>
+      </label>
+    `;
+  }
+  container.innerHTML = html;
+}
+
+function selectAllMonths(value) {
+  document.querySelectorAll('.month-cb').forEach(cb => cb.checked = value);
+}
+
+function selectCurrentMonth() {
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  document.querySelectorAll('.month-cb').forEach(cb => cb.checked = (parseInt(cb.value) === m));
+}
+
+function getSelectedMonths() {
+  return Array.from(document.querySelectorAll('.month-cb:checked'))
+              .map(cb => parseInt(cb.value))
+              .sort((a, b) => a - b);
+}
+
+function getReportMode() {
+  const v = document.querySelector('input[name="reportMode"]:checked');
+  return v ? v.value : 'combined';
+}
+
+function generateReport() {
+  const months = getSelectedMonths();
+  const year   = parseInt(document.getElementById('reportYear').value);
+  const mode   = getReportMode();
+
+  if (!year) { showNotification('กรุณาเลือกปี', 'error'); return; }
+  if (months.length === 0) { showNotification('กรุณาเลือกอย่างน้อย 1 เดือน', 'error'); return; }
+
+  if (mode === 'combined' || months.length === 1) {
+    renderCombinedReport(months, year);
+  } else {
+    renderSeparateReport(months, year);
+  }
+}
+
+// ===== โหมดรวม: รวมทุกเดือนที่เลือกเป็นรายงานเดียว =====
+function renderCombinedReport(months, year) {
+  const data = allData.filter(d => months.includes(Number(d.month)) && d.buddhist_year == year);
+
+  // ป้ายช่วงเวลา
+  let label;
+  if (months.length === 1) {
+    label = `ประจำเดือน${THAI_MONTHS[months[0]]} พ.ศ. ${year}`;
+  } else if (months.length === 12) {
+    label = `ประจำปี พ.ศ. ${year} (ทั้งปี)`;
+  } else if (isConsecutive(months)) {
+    label = `ประจำเดือน${THAI_MONTHS[months[0]]} – ${THAI_MONTHS[months[months.length-1]]} พ.ศ. ${year}`;
+  } else {
+    label = `ประจำเดือน ${months.map(m => THAI_MONTHS[m]).join(', ')} พ.ศ. ${year}`;
+  }
+  document.getElementById('reportPeriod').textContent = label;
+
+  const cat1 = data.filter(d => d.main_category == '1');
+  const cat2 = data.filter(d => d.main_category == '2');
+  const cat3 = data.filter(d => d.main_category == '3');
+  const cat4 = data.filter(d => d.main_category == '4');
+
+  document.getElementById('reportCat1').textContent = cat1.length;
+  document.getElementById('reportCat2').textContent = cat2.length;
+  document.getElementById('reportCat3').textContent = cat3.length;
+  document.getElementById('reportCat4').textContent = cat4.length;
+
+  const groupsContainer = document.getElementById('reportGroups');
+  groupsContainer.innerHTML = buildGroupsHtml(data);
+
+  setTimeout(() => renderReportCharts(cat1.length, cat2.length, cat3.length, cat4.length), 100);
+}
+
+// ===== โหมดแยก: แสดงรายงานทีละเดือนต่อๆ กัน =====
+function renderSeparateReport(months, year) {
+  // ใช้รายงานแรก (เดือนแรก) เป็นสรุปรวมในส่วนหัว
+  const allInRange = allData.filter(d => months.includes(Number(d.month)) && d.buddhist_year == year);
+  document.getElementById('reportPeriod').textContent =
+    `ประจำเดือน ${months.map(m => THAI_MONTHS[m]).join(', ')} พ.ศ. ${year} (แยกรายเดือน)`;
+
+  document.getElementById('reportCat1').textContent = allInRange.filter(d => d.main_category == '1').length;
+  document.getElementById('reportCat2').textContent = allInRange.filter(d => d.main_category == '2').length;
+  document.getElementById('reportCat3').textContent = allInRange.filter(d => d.main_category == '3').length;
+  document.getElementById('reportCat4').textContent = allInRange.filter(d => d.main_category == '4').length;
+
+  // สร้าง html แยกตามเดือน
+  let html = '';
+  months.forEach((m, idx) => {
+    const monthData = allData.filter(d => Number(d.month) === m && d.buddhist_year == year);
+    html += `<div style="${idx > 0 ? 'page-break-before: always; margin-top: 24px; padding-top: 12px; border-top: 2px dashed #cbd5e1;' : ''}">`;
+    html += `<h2 class="rpt-h2" style="background: #faf5ff; padding: 8px 14px; border-radius: 8px; margin-bottom: 12px; border-left: 5px solid #6b21a8;">
+               📅 ${THAI_MONTHS[m]} พ.ศ. ${year}
+               <span style="font-size: 14px; color: #64748b; font-weight: 500; margin-left: 8px;">(${monthData.length} รายการ)</span>
+             </h2>`;
+    html += buildGroupsHtml(monthData, false);  // ไม่ต้องโชว์ "รวมทั้งหมด" ในแต่ละเดือน
+    html += `</div>`;
+  });
+
+  document.getElementById('reportGroups').innerHTML = html;
+
+  const cat1 = allInRange.filter(d => d.main_category == '1').length;
+  const cat2 = allInRange.filter(d => d.main_category == '2').length;
+  const cat3 = allInRange.filter(d => d.main_category == '3').length;
+  const cat4 = allInRange.filter(d => d.main_category == '4').length;
+  setTimeout(() => renderReportCharts(cat1, cat2, cat3, cat4), 100);
+}
+
+// ===== สร้าง HTML สำหรับกลุ่มงาน (ใช้ร่วมกันทั้ง combined และ separate) =====
+function buildGroupsHtml(data, showTotal = true) {
+  // เรียงข้อมูลจากเก่า → ใหม่ (ภายในแต่ละด้าน)
+  const sortByDateAsc = arr => arr.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const cat1 = sortByDateAsc(data.filter(d => d.main_category == '1'));
+  const cat2 = sortByDateAsc(data.filter(d => d.main_category == '2'));
+  const cat3 = sortByDateAsc(data.filter(d => d.main_category == '3'));
+  const cat4 = sortByDateAsc(data.filter(d => d.main_category == '4'));
+
+  const groups = [
+    { label: 'ด้านที่ 1: ด้านการพัฒนาและส่งเสริมการศึกษา', color: '#6b21a8', bg: '#faf5ff', items: cat1 },
+    { label: 'ด้านที่ 2: ด้านการบริหารจัดการและประสานงาน', color: '#0e7490', bg: '#ecfeff', items: cat2 },
+    { label: 'ด้านที่ 3: ด้านการบริการวิชาการและพัฒนาชุมชน', color: '#92400e', bg: '#fffbeb', items: cat3 },
+    { label: 'ด้านที่ 4: งานอื่น ๆ',                       color: '#991b1b', bg: '#fff1f2', items: cat4 }
+  ];
+
+  if (data.length === 0) {
+    return `<div style="text-align:center;padding:30px;color:#94a3b8;font-size:16px;">ไม่มีข้อมูลในช่วงนี้</div>`;
+  }
+
+  let html = '';
+  let no = 1;
+  groups.forEach(g => {
+    if (g.items.length === 0) return;
+    // .group-wrap = กล่องครอบหัว+ตาราง  / .group-header = หัวข้อด้านเดียว
+    html += `<div class="group-wrap" style="margin-bottom: 20px;">`;
+    html += `<div class="group-header" style="background: ${g.bg}; border-left: 5px solid ${g.color}; padding: 8px 14px; border-radius: 6px 6px 0 0; border: 1px solid #cbd5e1; border-bottom: none;">
+               <span style="font-size: 16px; font-weight: 700; color: ${g.color};">${g.label}</span>
+               <span style="font-size: 14px; color: ${g.color}; margin-left: 8px;">(${g.items.length} รายการ)</span>
+             </div>`;
+    html += `<table class="rpt-table" style="margin-top: 0;">
+               <thead>
+                 <tr>
+                   <th style="width: 40px; text-align: center;">ลำดับ</th>
+                   <th style="width: 110px;">วันที่</th>
+                   <th style="width: 220px;">หัวข้อย่อย</th>
+                   <th>เรื่อง / รายละเอียด</th>
+                 </tr>
+               </thead>
+               <tbody>`;
+    g.items.forEach(d => {
+      html += `<tr>
+                 <td style="text-align: center;">${no++}</td>
+                 <td>${formatThaiDate(d.date)}</td>
+                 <td style="font-size: 15px;">${d.sub_category || '-'}</td>
+                 <td>
+                   <div style="font-weight: 600;">${d.topic || '-'}</div>
+                   ${d.detail ? `<div style="font-size: 14px; color: #64748b; margin-top: 3px;">${d.detail}</div>` : ''}
+                 </td>
+               </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  });
+
+  if (showTotal) {
+    html += `<div style="background: #6b21a8; color: white; padding: 10px 14px; border-radius: 8px; text-align: right; margin-top: 16px; font-size: 17px; font-weight: 700;">
+               รวมทั้งหมด: ${data.length} รายการ
+             </div>`;
+  }
+  return html;
+}
+
+function isConsecutive(arr) {
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] !== arr[i-1] + 1) return false;
+  }
+  return true;
+}
+
+function renderReportCharts(c1, c2, c3, c4) {
+  if (reportPieChart) reportPieChart.destroy();
+  if (reportBarChart) reportBarChart.destroy();
+  
+  const pieCanvas = document.getElementById('reportPieChart');
+  const barCanvas = document.getElementById('reportBarChart');
+  
+  reportPieChart = new Chart(pieCanvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['ด้านที่ 1','ด้านที่ 2','ด้านที่ 3','ด้านที่ 4'],
+      datasets: [{ data: [c1, c2, c3, c4], backgroundColor: ['#6b21a8','#0e7490','#d97706','#dc2626'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { family: 'Sarabun', size: 11 }, padding: 8, boxWidth: 12 } } }
+    }
+  });
+  
+  reportBarChart = new Chart(barCanvas, {
+    type: 'bar',
+    data: {
+      labels: ['ด้านที่ 1','ด้านที่ 2','ด้านที่ 3','ด้านที่ 4'],
+      datasets: [{ data: [c1, c2, c3, c4], backgroundColor: ['#6b21a8','#0e7490','#d97706','#dc2626'], borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, font: { family: 'Sarabun', size: 11 } } },
+        x: { ticks: { font: { family: 'Sarabun', size: 11 } } }
+      }
+    }
+  });
+}
+
+function printReport() { 
+  showPrintHelpModal('print');
+}
+
+/**
+ * Export PDF — ใช้ browser's native print → Save as PDF
+ *
+ * แนวคิด (วิธีที่เว็บเอกสารระดับมืออาชีพใช้กัน):
+ *   - browser มี layout engine ที่จัดการ page break ได้สมบูรณ์
+ *   - CSS @media print + page-break-inside: avoid ทำให้ไม่ฉีกบล็อก
+ *   - thead repeat ใช้ display: table-header-group ทำให้หัวตารางซ้ำทุกหน้า
+ *   - User เลือก "Save as PDF" ใน print dialog → ได้ PDF text จริง (ไม่ใช่รูป)
+ *     • ค้นหาได้, เลือก copy ได้, file size เล็ก
+ *     • คมชัด 100% ทุก resolution
+ */
+async function exportPDF() {
+  showPrintHelpModal('pdf');
+}
+
+function showPrintHelpModal(mode) {
+  // ตรวจว่ามี modal เก่าอยู่ไหม ถ้ามีลบทิ้ง
+  const existing = document.getElementById('printHelpModal');
+  if (existing) existing.remove();
+
+  const isPDF = mode === 'pdf';
+  const modal = document.createElement('div');
+  modal.id = 'printHelpModal';
+  modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4 no-print';
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 card-shadow-lg">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="text-3xl">${isPDF ? '📥' : '🖨️'}</div>
+        <h3 class="font-display text-lg font-bold text-slate-800">
+          ${isPDF ? 'บันทึกเป็นไฟล์ PDF' : 'พิมพ์รายงาน A4'}
+        </h3>
+      </div>
+      
+      <div class="text-sm text-slate-700 space-y-3 mb-5">
+        ${isPDF ? `
+          <p>เมื่อกด <b>"เปิดหน้าต่างพิมพ์"</b> แล้ว ใน Chrome:</p>
+          <ol class="list-decimal pl-5 space-y-1">
+            <li><b>ปลายทาง:</b> เลือก <b>"บันทึกเป็น PDF"</b> / <b>"Save as PDF"</b></li>
+            <li><b>ขนาดกระดาษ:</b> A4</li>
+            <li><b>ระยะขอบ:</b> "เริ่มต้น" / "Default"</li>
+            <li>กด <b>"การตั้งค่าเพิ่มเติม"</b> เพื่อขยาย</li>
+            <li>กด <b>"บันทึก"</b></li>
+          </ol>
+        ` : `
+          <p>เมื่อกด <b>"เปิดหน้าต่างพิมพ์"</b> แล้ว:</p>
+          <ol class="list-decimal pl-5 space-y-1">
+            <li><b>ปลายทาง:</b> เลือกเครื่องพิมพ์</li>
+            <li><b>ขนาดกระดาษ:</b> A4</li>
+            <li>กด <b>"การตั้งค่าเพิ่มเติม"</b></li>
+            <li>กด <b>"พิมพ์"</b></li>
+          </ol>
+        `}
+        
+        <div class="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-3">
+          <p class="text-sm text-red-800 font-bold flex items-start gap-2">
+            <span class="text-lg">⚠️</span>
+            <span>สำคัญ! ต้องติ๊กถูก ✓ <u>"กราฟิกพื้นหลัง"</u> (Background graphics) ในส่วน "การตั้งค่าเพิ่มเติม" ไม่งั้นสีและกราฟจะหายหมด</span>
+          </p>
+        </div>
+        
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <p class="text-xs text-purple-800">
+            💡 วิธีนี้ใช้ระบบพิมพ์ของ browser โดยตรง — ไม่ฉีกแถว, ตัวอักษรคมชัด, ค้นหาในไฟล์ PDF ได้
+          </p>
+        </div>
+      </div>
+      
+      <div class="flex gap-2">
+        <button onclick="document.getElementById('printHelpModal').remove()" 
+                class="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50">
+          ยกเลิก
+        </button>
+        <button onclick="document.getElementById('printHelpModal').remove(); setTimeout(()=>window.print(), 100);" 
+                class="flex-1 px-4 py-2.5 rounded-xl btn-primary text-white font-semibold">
+          🖨️ เปิดหน้าต่างพิมพ์
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// ========================================
+// Init
+// ========================================
+window.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('recordDate').value = today;
+  document.getElementById('thaiDateDisplay').textContent = formatThaiDate(today);
+  loadSavedProfile();
+  loadData();
+});
+
+// ===== ตั้งชื่อไฟล์ PDF ก่อนพิมพ์ + จัดการ chart canvas =====
+// browser จะใช้ document.title เป็นชื่อไฟล์ตอน "Save as PDF"
+let _originalTitle = '';
+let _chartImagesInjected = [];
+
+window.addEventListener('beforeprint', () => {
+  _originalTitle = document.title;
+  // ตั้งชื่อตามเดือน/ปีที่เลือก
+  try {
+    const yearEl = document.getElementById('reportYear');
+    if (yearEl && typeof getSelectedMonths === 'function') {
+      const months = getSelectedMonths();
+      const year = yearEl.value;
+      let suffix;
+      if (months.length === 0)        suffix = '';
+      else if (months.length === 1)   suffix = `_${THAI_MONTHS[months[0]]}`;
+      else if (months.length === 12)  suffix = `_ทั้งปี`;
+      else                            suffix = `_${months.length}เดือน`;
+      if (year) document.title = `รายงานการปฏิบัติงาน${suffix}_${year}`;
+    }
+  } catch (e) {}
+
+  // แปลง canvas chart เป็นภาพ (canvas ไม่ค่อย print ผ่าน Chrome ได้สม่ำเสมอ)
+  try {
+    _chartImagesInjected = [];
+    document.querySelectorAll('#reportContent canvas').forEach(cv => {
+      // วัดขนาด ก่อน ซ่อน canvas
+      const w = cv.offsetWidth || cv.width;
+      const h = cv.offsetHeight || cv.height;
+      if (w === 0 || h === 0) return;  // canvas ยังไม่ render
+      
+      let dataUrl;
+      try {
+        dataUrl = cv.toDataURL('image/png');
+      } catch (e) {
+        console.warn('Cannot convert canvas:', e);
+        return;
+      }
+      if (!dataUrl || dataUrl === 'data:,') return;
+      
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.style.width  = w + 'px';
+      img.style.height = h + 'px';
+      img.style.display = 'block';
+      img.style.maxWidth = '100%';
+      img.className = 'print-chart-replacement';
+      
+      // insert ก่อนซ่อน canvas
+      cv.parentNode.insertBefore(img, cv);
+      cv.style.display = 'none';
+      _chartImagesInjected.push({ canvas: cv, img: img });
+    });
+    console.log('Converted', _chartImagesInjected.length, 'chart canvases to images');
+  } catch (e) { console.warn('Chart→Image fallback failed', e); }
+});
+
+window.addEventListener('afterprint', () => {
+  if (_originalTitle) document.title = _originalTitle;
+  // คืนสภาพ canvas
+  try {
+    _chartImagesInjected.forEach(({ canvas, img }) => {
+      img.remove();
+      canvas.style.display = '';
+    });
+    _chartImagesInjected = [];
+  } catch (e) {}
+});
+</script>
+
+</body>
+</html>
